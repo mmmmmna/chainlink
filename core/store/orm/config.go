@@ -6,11 +6,13 @@ import (
 	"io/ioutil"
 	"log"
 	"math/big"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/smartcontractkit/chainlink/core/assets"
 	"github.com/smartcontractkit/chainlink/core/logger"
@@ -172,6 +174,10 @@ func (c Config) getDuration(s string) models.Duration {
 	return rv
 }
 
+func (c Config) DatabaseMaximumTxDuration() time.Duration {
+	return c.viper.GetDuration(EnvVarName("DatabaseMaximumTxDuration"))
+}
+
 // DatabaseTimeout represents how long to tolerate non response from the DB.
 func (c Config) DatabaseTimeout() models.Duration {
 	return c.getDuration("DatabaseTimeout")
@@ -228,6 +234,11 @@ func (c Config) FeatureExternalInitiators() bool {
 // FeatureFluxMonitor enables the Flux Monitor feature.
 func (c Config) FeatureFluxMonitor() bool {
 	return c.viper.GetBool(EnvVarName("FeatureFluxMonitor"))
+}
+
+// FeatureOffchainReporting enables the Flux Monitor feature.
+func (c Config) FeatureOffchainReporting() bool {
+	return c.viper.GetBool(EnvVarName("FeatureOffchainReporting"))
 }
 
 // MaxRPCCallsPerSecond returns the rate at which RPC calls can be fired
@@ -386,6 +397,28 @@ func (c Config) GasUpdaterEnabled() bool {
 	return c.viper.GetBool(EnvVarName("GasUpdaterEnabled"))
 }
 
+func (c Config) JobPipelineDBPollInterval() time.Duration {
+	return c.viper.GetDuration(EnvVarName("JobPipelineDBPollInterval"))
+}
+
+func (c Config) JobPipelineMaxTaskDuration() time.Duration {
+	return c.viper.GetDuration(EnvVarName("JobPipelineMaxTaskDuration"))
+}
+
+// JobPipelineParallelism controls how many workers the pipeline.Runner
+// uses in parallel
+func (c Config) JobPipelineParallelism() uint8 {
+	return c.getWithFallback("JobPipelineParallelism", parseUint8).(uint8)
+}
+
+func (c Config) JobPipelineReaperInterval() time.Duration {
+	return c.viper.GetDuration(EnvVarName("JobPipelineReaperInterval"))
+}
+
+func (c Config) JobPipelineReaperThreshold() time.Duration {
+	return c.viper.GetDuration(EnvVarName("JobPipelineReaperThreshold"))
+}
+
 // JSONConsole enables the JSON console.
 func (c Config) JSONConsole() bool {
 	return c.viper.GetBool(EnvVarName("JSONConsole"))
@@ -418,6 +451,42 @@ func (c Config) ExplorerAccessKey() string {
 // ExplorerSecret returns the secret for authenticating with explorer
 func (c Config) ExplorerSecret() string {
 	return c.viper.GetString(EnvVarName("ExplorerSecret"))
+}
+
+func (c Config) OCRBootstrapCheckInterval() time.Duration {
+	return c.viper.GetDuration(EnvVarName("OCRBootstrapCheckInterval"))
+}
+
+func (c Config) OCRContractTransmitterTransmitTimeout() time.Duration {
+	return c.viper.GetDuration(EnvVarName("OCRContractTransmitterTransmitTimeout"))
+}
+
+func (c Config) OCRDatabaseTimeout() time.Duration {
+	return c.viper.GetDuration(EnvVarName("OCRDatabaseTimeout"))
+}
+
+func (c Config) OCRDHTLookupInterval() int {
+	return c.viper.GetInt(EnvVarName("OCRDHTLookupInterval"))
+}
+
+func (c Config) OCRIncomingMessageBufferSize() int {
+	return c.viper.GetInt(EnvVarName("OCRIncomingMessageBufferSize"))
+}
+
+func (c Config) OCRListenIP() net.IP {
+	return c.getWithFallback("OCRListenIP", parseIP).(net.IP)
+}
+
+func (c Config) OCRListenPort() uint16 {
+	return c.getWithFallback("OCRListenPort", parseUint16).(uint16)
+}
+
+func (c Config) OCRNewStreamTimeout() time.Duration {
+	return c.viper.GetDuration(EnvVarName("OCRNewStreamTimeout"))
+}
+
+func (c Config) OCROutgoingMessageBufferSize() int {
+	return c.viper.GetInt(EnvVarName("OCROutgoingMessageBufferSize"))
 }
 
 // OperatorContractAddress represents the address where the Operator.sol
@@ -673,8 +742,17 @@ func parseUint16(str string) (interface{}, error) {
 	return uint16(d), err
 }
 
+func parseUint8(str string) (interface{}, error) {
+	d, err := strconv.ParseUint(str, 10, 8)
+	return uint8(d), err
+}
+
 func parseURL(s string) (interface{}, error) {
 	return url.Parse(s)
+}
+
+func parseIP(s string) (interface{}, error) {
+	return net.ParseIP(s), nil
 }
 
 func parseBigInt(str string) (interface{}, error) {

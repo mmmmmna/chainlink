@@ -1,4 +1,4 @@
-package services
+package utils
 
 // SleeperTask represents a task that waits in the background to process some work.
 type SleeperTask interface {
@@ -12,9 +12,10 @@ type Worker interface {
 }
 
 type sleeperTask struct {
-	worker      Worker
-	chQueue     chan struct{}
-	chQueueDone chan struct{}
+	worker  Worker
+	chQueue chan struct{}
+	chStop  chan struct{}
+	chDone  chan struct{}
 }
 
 // NewSleeperTask takes a worker and returns a SleeperTask.
@@ -28,9 +29,10 @@ type sleeperTask struct {
 //
 func NewSleeperTask(worker Worker) SleeperTask {
 	s := &sleeperTask{
-		worker:      worker,
-		chQueue:     make(chan struct{}, 1),
-		chQueueDone: make(chan struct{}),
+		worker:  worker,
+		chQueue: make(chan struct{}, 1),
+		chStop:  make(chan struct{}),
+		chDone:  make(chan struct{}),
 	}
 
 	go s.workerLoop()
@@ -41,8 +43,8 @@ func NewSleeperTask(worker Worker) SleeperTask {
 // Stop stops the SleeperTask.  It never returns an error.  Its error return
 // exists so as to satisfy other interfaces.
 func (s *sleeperTask) Stop() error {
-	close(s.chQueue)
-	<-s.chQueueDone
+	close(s.chStop)
+	<-s.chDone
 	return nil
 }
 
@@ -55,13 +57,22 @@ func (s *sleeperTask) WakeUp() {
 }
 
 func (s *sleeperTask) workerLoop() {
-	defer close(s.chQueueDone)
+	defer close(s.chDone)
 
-	for range s.chQueue {
-		s.worker.Work()
+	for {
+		select {
+		case <-s.chQueue:
+			s.worker.Work()
+		case <-s.chStop:
+			return
+		}
 	}
 
 	if len(s.chQueue) > 0 {
 		s.worker.Work()
 	}
 }
+
+type SleeperTaskFuncWorker func()
+
+func (fn SleeperTaskFuncWorker) Work() { fn() }

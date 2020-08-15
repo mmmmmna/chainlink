@@ -127,7 +127,11 @@ func (fm *concreteFluxMonitor) Start() error {
 
 // Disconnect cleans up running deviation checkers.
 func (fm *concreteFluxMonitor) Stop() {
-	fm.logBroadcaster.Stop()
+	if fm.disabled {
+		logger.Info("Flux monitor disabled: cannot stop")
+		return
+	}
+
 	close(fm.chStop)
 	if fm.started {
 		fm.started = false
@@ -487,6 +491,10 @@ func (p *PollingDeviationChecker) OnDisconnect() {
 	)
 	p.connected.UnSet()
 }
+
+func (p *PollingDeviationChecker) JobID() *models.ID { return p.initr.JobSpecID }
+func (p *PollingDeviationChecker) JobIDV2() int32    { return 0 }
+func (p *PollingDeviationChecker) IsV2Job() bool     { return false }
 
 func (p *PollingDeviationChecker) HandleLog(broadcast eth.LogBroadcast, err error) {
 	if err != nil {
@@ -1155,10 +1163,6 @@ func (p *PollingDeviationChecker) loggerFieldsForAnswerUpdated(log contracts.Log
 		"contract", log.Address.Hex(),
 		"job", p.initr.JobSpecID,
 	}
-}
-
-func (p *PollingDeviationChecker) JobID() *models.ID {
-	return p.initr.JobSpecID
 }
 
 // OutsideDeviation checks whether the next price is outside the threshold.

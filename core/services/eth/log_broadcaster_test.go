@@ -174,6 +174,12 @@ func (listener simpleLogListener) OnDisconnect() {}
 func (listener simpleLogListener) JobID() *models.ID {
 	return listener.consumerID
 }
+func (listener simpleLogListener) IsV2Job() bool {
+	return false
+}
+func (listener simpleLogListener) JobIDV2() int32 {
+	return 0
+}
 
 func TestLogBroadcaster_BroadcastsToCorrectRecipients(t *testing.T) {
 	t.Parallel()
