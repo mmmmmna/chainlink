@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/smartcontractkit/chainlink/core/gracefulpanic"
 	"github.com/smartcontractkit/chainlink/core/logger"
@@ -97,14 +96,6 @@ func NewApplication(config *orm.Config, onConnectCallbacks ...func(Application))
 		statsPusher = synchronization.NewStatsPusher(store.ORM, explorerClient)
 		telemetryAgent = telemetry.NewAgent(explorerClient)
 	}
-
-	// TODO: Remove this, it's just to manually test the explorer integration
-	go func() {
-		for {
-			time.Sleep(1 * time.Second)
-			telemetryAgent.SendLog([]byte{})
-		}
-	}()
 
 	runExecutor := services.NewRunExecutor(store, statsPusher)
 	runQueue := services.NewRunQueue(runExecutor)
