@@ -27,7 +27,7 @@ else
 endif
 
 TAGGED_REPO := $(REPO):$(DOCKER_TAG)
-ECR_REPO := "$(AWS_ECR_ACCOUNT_URL):$(DOCKER_TAG)"
+ECR_REPO := "$(AWS_ECR_URL)/chainlink:$(DOCKER_TAG)"
 
 .PHONY: install
 install: operator-ui-autoinstall install-chainlink-autoinstall ## Install chainlink and all its dependencies.
@@ -100,17 +100,15 @@ testdb: ## Prepares the test database
 
 .PHONY: docker
 docker: ## Build the docker image.
-	docker build \
+		sed 's/smartcontract\/builder/$(AWS_ECR_URL)\/builder/g' $(DOCKERFILE) | docker build -f - \
 		--build-arg ENVIRONMENT=$(ENVIRONMENT) \
 		--build-arg COMMIT_SHA=$(COMMIT_SHA) \
 		--build-arg SGX_SIMULATION=$(SGX_SIMULATION) \
 		-t $(TAGGED_REPO) \
-		-f $(DOCKERFILE) \
 		.
 
 .PHONY: dockerpush
-dockerpush: ## Push the docker image to dockerhub
-	docker push $(TAGGED_REPO)
+dockerpush: ## Push the docker image to ecr
 	docker push $(ECR_REPO)
 
 .PHONY: $(SGX_ENCLAVE)
