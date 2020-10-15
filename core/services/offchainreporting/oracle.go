@@ -82,9 +82,7 @@ func (d jobSpawnerDelegate) FromDBRow(spec models.JobSpecV2) job.Spec {
 func (d jobSpawnerDelegate) ServicesForSpec(spec job.Spec) ([]job.Service, error) {
 	concreteSpec := spec.(*OracleSpec)
 
-	// FIXME: Use proper values
-	gasLimit := uint64(500000)
-
+	gasLimit := d.config.EthGasLimitDefault()
 	transmitter := NewTransmitter(d.db.DB(), concreteSpec.TransmitterAddress.Address(), gasLimit)
 
 	ocrContract, err := NewOCRContract(
@@ -114,7 +112,7 @@ func (d jobSpawnerDelegate) ServicesForSpec(spec job.Spec) ([]job.Service, error
 		return nil, errors.Wrap(err, "could not make new peerstore")
 	}
 
-	ocrLogger := NewLogger(logger.Default)
+	ocrLogger := NewLogger(logger.Default, d.config.OCRTraceLogging())
 
 	peer, err := ocrnetworking.NewPeer(ocrnetworking.PeerConfig{
 		PrivKey:    p2pkey.PrivKey,

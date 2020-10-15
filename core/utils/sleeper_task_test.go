@@ -81,6 +81,8 @@ func (w *controllableWorker) Work() {
 }
 
 func TestSleeperTask_WakeupEnqueuesMaxTwice(t *testing.T) {
+	t.Fatal("FIXME: this test intermittently fails")
+
 	t.Parallel()
 
 	worker := &controllableWorker{awaitWorkStarted: make(chan struct{}), allowResumeWork: make(chan struct{})}
