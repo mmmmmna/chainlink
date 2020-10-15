@@ -2132,5 +2132,5 @@ func TestORM_MarkLogConsumed(t *testing.T) {
 	require.NoError(t, err)
 	rowsaffected, err := res.RowsAffected()
 	require.NoError(t, err)
-	require.Equal(t, 1, rowsaffected)
+	require.Equal(t, int64(1), rowsaffected)
 }
