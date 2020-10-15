@@ -12,8 +12,6 @@ type ocrLogger struct {
 	trace    bool
 }
 
-// TODO(sam): We probably want to hide DEBUG and TRACE logs behind some sort of env
-// var because otherwise the logs will become unusably flooded
 func NewLogger(internal *logger.Logger, trace bool) ocrtypes.Logger {
 	return &ocrLogger{
 		internal: internal,

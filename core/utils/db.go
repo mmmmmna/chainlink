@@ -179,6 +179,8 @@ type PostgresAdvisoryLock struct {
 	mu   *sync.Mutex
 }
 
+// TODO(sam): Fix this to be a single global connection not many individual ones
+// See: https://www.pivotaltracker.com/story/show/175288169
 func NewPostgresAdvisoryLock(uri string) *PostgresAdvisoryLock {
 	return &PostgresAdvisoryLock{
 		URI: uri,

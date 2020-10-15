@@ -154,18 +154,12 @@ func (o *orm) ProcessNextUnclaimedTaskRun(ctx context.Context, fn ProcessTaskRun
 
 	utils.RetryWithBackoff(ctx, func() (retry bool) {
 		err = o.processNextUnclaimedTaskRun(ctx, fn)
-		// "Record not found" errors mean that we're done with all unclaimed task runs.
-		// "Serialization anomy" errors mean that Postgres is experiencing lock contention.
-		// We must not handle these cases as true errors.
+		// "Record not found" errors mean that we're done with all unclaimed
+		// task runs.
 		if utils.IsRecordNotFound(err) {
 			anyRemaining = false
 			retry = false
 			err = nil
-
-		} else if utils.IsSerializationAnomaly(err) {
-			retry = true
-			logger.Warn("Pipeline runner is experiencing Postgres lock contention")
-
 		} else if err != nil {
 			retry = true
 			err = errors.Wrap(err, "Pipeline runner could not process task run")
@@ -380,6 +374,8 @@ func (o *orm) AwaitRun(ctx context.Context, runID int64) error {
 }
 
 func (o *orm) ResultsForRun(ctx context.Context, runID int64) ([]Result, error) {
+	// TODO(sam): I think this can be optimised by condensing it down into one query
+	// See: https://www.pivotaltracker.com/story/show/175288635
 	done, err := o.RunFinished(runID)
 	if err != nil {
 		return nil, err
@@ -395,7 +391,7 @@ func (o *orm) ResultsForRun(ctx context.Context, runID int64) ([]Result, error) 
 		var resultTaskRun TaskRun
 		err = o.db.
 			Preload("PipelineTaskSpec").
-			Joins("LEFT JOIN pipeline_task_specs ON pipeline_task_runs.pipeline_task_spec_id = pipeline_task_specs.id").
+			Joins("INNER JOIN pipeline_task_specs ON pipeline_task_runs.pipeline_task_spec_id = pipeline_task_specs.id").
 			Where("pipeline_run_id = ?", runID).
 			Where("finished_at IS NOT NULL").
 			Where("pipeline_task_specs.successor_id IS NULL").
@@ -439,10 +435,11 @@ func (o *orm) ResultsForRun(ctx context.Context, runID int64) ([]Result, error) 
 func (o *orm) RunFinished(runID int64) (bool, error) {
 	var done struct{ Done bool }
 	err := o.db.Raw(`
-        SELECT bool_and(finished_at IS NOT NULL) AS done
+        SELECT finished_at IS NOT NULL AS done
         FROM pipeline_task_runs
-        LEFT JOIN pipeline_task_specs ON pipeline_task_runs.pipeline_task_spec_id = pipeline_task_specs.id
+        INNER JOIN pipeline_task_specs ON pipeline_task_runs.pipeline_task_spec_id = pipeline_task_specs.id
         WHERE pipeline_task_runs.pipeline_run_id = ? AND pipeline_task_specs.successor_id IS NULL
+		LIMIT 1
     `, runID).Scan(&done).Error
 	return done.Done, errors.Wrapf(err, "could not determine if run is finished (run ID: %v)", runID)
 }

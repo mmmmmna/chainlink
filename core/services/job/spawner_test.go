@@ -72,7 +72,6 @@ func TestSpawner_CreateJobDeleteJob(t *testing.T) {
 	db := oldORM.DB
 
 	t.Run("starts and stops job services when jobs are added and removed", func(t *testing.T) {
-		// FIXME(sam): Why does JobSpecV2 not just conform to the job.Spec interface and avoid all this confusion?
 		innerJobSpecA, _ := makeOCRJobSpec(t, db)
 		innerJobSpecB, _ := makeOCRJobSpec(t, db)
 		jobSpecA := &spec{innerJobSpecA, jobTypeA}
