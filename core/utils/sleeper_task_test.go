@@ -99,6 +99,8 @@ func TestSleeperTask_WakeupEnqueuesMaxTwice(t *testing.T) {
 }
 
 func TestSleeperTask_StopWaitsUntilWorkFinishes(t *testing.T) {
+	t.Fatal("FIXME: this test intermittently fails")
+
 	t.Parallel()
 
 	worker := &countingWorker{delay: 200 * time.Millisecond}

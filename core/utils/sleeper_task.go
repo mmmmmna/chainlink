@@ -86,6 +86,8 @@ func (s *sleeperTask) workerLoop() {
 		}
 	}
 
+	// FIXME: Unreachable code??
+
 	if len(s.chQueue) > 0 {
 		s.worker.Work()
 	}
