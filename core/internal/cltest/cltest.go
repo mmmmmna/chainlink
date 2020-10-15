@@ -27,6 +27,7 @@ import (
 	"github.com/smartcontractkit/chainlink/core/internal/mocks"
 	"github.com/smartcontractkit/chainlink/core/logger"
 	"github.com/smartcontractkit/chainlink/core/services/chainlink"
+	"github.com/smartcontractkit/chainlink/core/services/eth"
 	strpkg "github.com/smartcontractkit/chainlink/core/store"
 	"github.com/smartcontractkit/chainlink/core/store/models"
 	"github.com/smartcontractkit/chainlink/core/store/models/ocrkey"
@@ -337,8 +338,16 @@ func NewApplicationWithConfigAndKey(t testing.TB, tc *TestConfig, flagsAndDeps .
 func NewApplicationWithConfig(t testing.TB, tc *TestConfig, flagsAndDeps ...interface{}) (*TestApplication, func()) {
 	t.Helper()
 
+	var ethClient eth.Client = &eth.NullClient{}
+	for _, flag := range flagsAndDeps {
+		switch dep := flag.(type) {
+		case eth.Client:
+			ethClient = dep
+		}
+	}
+
 	ta := &TestApplication{t: t, connectedChannel: make(chan struct{}, 1)}
-	app := chainlink.NewApplication(tc.Config, func(app chainlink.Application) {
+	app := chainlink.NewApplication(tc.Config, ethClient, func(app chainlink.Application) {
 		ta.connectedChannel <- struct{}{}
 	}).(*chainlink.ChainlinkApplication)
 	ta.ChainlinkApplication = app
@@ -534,7 +543,7 @@ func (ta *TestApplication) MustCreateJobRun(txHashBytes []byte, blockHashBytes [
 
 // NewStoreWithConfig creates a new store with given config
 func NewStoreWithConfig(config *TestConfig) (*strpkg.Store, func()) {
-	s := strpkg.NewInsecureStore(config.Config, gracefulpanic.NewSignal())
+	s := strpkg.NewInsecureStore(config.Config, &eth.NullClient{}, gracefulpanic.NewSignal())
 	return s, func() {
 		cleanUpStore(config.t, s)
 	}

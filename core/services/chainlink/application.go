@@ -87,12 +87,11 @@ type ChainlinkApplication struct {
 // present at the configured root directory (default: ~/.chainlink),
 // the logger at the same directory and returns the Application to
 // be used by the node.
-func NewApplication(config *orm.Config, onConnectCallbacks ...func(Application)) Application {
+func NewApplication(config *orm.Config, ethClient eth.Client, onConnectCallbacks ...func(Application)) Application {
 	shutdownSignal := gracefulpanic.NewSignal()
-	store := strpkg.NewStore(config, shutdownSignal)
+	store := strpkg.NewStore(config, ethClient, shutdownSignal)
 	config.SetRuntimeStore(store.ORM)
 
-	ethClient := store.TxManager.(*strpkg.EthTxManager).Client
 	statsPusher := synchronization.NewStatsPusher(
 		store.ORM, config.ExplorerURL(), config.ExplorerAccessKey(), config.ExplorerSecret(),
 	)
@@ -183,6 +182,8 @@ func (app *ChainlinkApplication) Start() error {
 		app.Exiter(0)
 	}()
 
+	app.jobSpawner.Start()
+	app.pipelineRunner.Start()
 
 	// XXX: Change to exit on first encountered error.
 	return multierr.Combine(
@@ -194,8 +195,6 @@ func (app *ChainlinkApplication) Start() error {
 		app.LogBroadcaster.Start(),
 		app.FluxMonitor.Start(),
 		app.EthBroadcaster.Start(),
-	app.jobSpawner.Start()
-	app.pipelineRunner.Start()
 
 		// HeadTracker deliberately started after
 		// RunManager.ResumeAllInProgress since it Connects JobSubscriber

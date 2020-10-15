@@ -53,6 +53,7 @@ const EthMockRegisterGetBalance = "eth_mock_register_get_balance"
 const EthMockRegisterGetBlockByNumber = "eth_mock_register_get_block_by_number"
 
 // MockEthOnStore given store return new EthMock Client
+// TODO(sam): Remove this function entirely and pass in eth client via dependency injection in NewApplication
 func MockEthOnStore(t testing.TB, s *store.Store, flagsAndDependencies ...interface{}) *EthMock {
 	mock := &EthMock{
 		t:                 t,
